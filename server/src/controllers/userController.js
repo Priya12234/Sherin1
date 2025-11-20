@@ -152,10 +152,13 @@ const UserController = {
           .status(404)
           .json({ status: "failed", message: "User Not Found" });
       }
-
+      if (req.body.email) {
+        return res
+          .status(404)
+          .json({ status: "failed", message: "You cannot update your email" });
+      }
       // Update fields only if provided
       user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
       if (req.body.password) user.passwordHash = req.body.password; // hashed in model
       if (req.body.phone) user.phone = req.body.phone;
       if (req.body.address) user.address = req.body.address; // expect array of addresses
@@ -165,7 +168,6 @@ const UserController = {
       return res.status(200).json({
         id: updatedUser._id,
         name: updatedUser.name,
-        email: updatedUser.email,
         role: updatedUser.role,
         phone: updatedUser.phone,
         address: updatedUser.address,

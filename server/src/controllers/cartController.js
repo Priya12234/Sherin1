@@ -1,6 +1,7 @@
 // controllers/cartController.js
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
+import Combo from "../models/Combo.js";
 
 const cartController = {
   // ========================= Customer Controllers =========================
@@ -32,44 +33,146 @@ const cartController = {
    * @route   POST /api/cart/add
    * @access  Private (Customer)
    */
+  // addToCart: async (req, res) => {
+  //   try {
+  //     const { productId, quantity } = req.body;
+  //     let cart = await Cart.findOne({ userId: req.user._id });
+
+  //     const product = await Product.findById(productId);
+  //     if (!product) {
+  //       return res
+  //         .status(404)
+  //         .json({ status: "error", message: "Product not found" });
+  //     }
+
+  //     if (!cart) {
+  //       cart = new Cart({
+  //         userId: req.user._id,
+  //         items: [{ productId, quantity }],
+  //         total: product.price * quantity,
+  //       });
+  //     } else {
+  //       const existingItem = cart.items.find(
+  //         (item) => item.productId.toString() === productId
+  //       );
+  //       if (existingItem) {
+  //         existingItem.quantity += quantity;
+  //       } else {
+  //         cart.items.push({ productId, quantity });
+  //       }
+
+  //       // recalc total
+  //       cart.total = await cart.items.reduce(async (accP, item) => {
+  //         const acc = await accP;
+  //         const prod = await Product.findById(item.productId);
+  //         return acc + prod.price * item.quantity;
+  //       }, Promise.resolve(0));
+  //     }
+
+  //     const updatedCart = await cart.save();
+  //     return res.status(201).json({ status: "success", result: updatedCart });
+  //   } catch (error) {
+  //     return res.status(500).json({ status: "error", message: error.message });
+  //   }
+  // },
+
   addToCart: async (req, res) => {
     try {
-      const { productId, quantity } = req.body;
-      let cart = await Cart.findOne({ userId: req.user._id });
+      const { productId, comboId, quantity } = req.body;
 
-      const product = await Product.findById(productId);
-      if (!product) {
+      if (!productId && !comboId) {
         return res
-          .status(404)
-          .json({ status: "error", message: "Product not found" });
+          .status(400)
+          .json({ status: "error", message: "Provide productId or comboId" });
       }
+
+      let cart = await Cart.findOne({ userId: req.user._id });
 
       if (!cart) {
         cart = new Cart({
           userId: req.user._id,
-          items: [{ productId, quantity }],
-          total: product.price * quantity,
+          items: [],
+          total: 0,
         });
-      } else {
-        const existingItem = cart.items.find(
-          (item) => item.productId.toString() === productId
-        );
-        if (existingItem) {
-          existingItem.quantity += quantity;
-        } else {
-          cart.items.push({ productId, quantity });
-        }
-
-        // recalc total
-        cart.total = await cart.items.reduce(async (accP, item) => {
-          const acc = await accP;
-          const prod = await Product.findById(item.productId);
-          return acc + prod.price * item.quantity;
-        }, Promise.resolve(0));
       }
 
-      const updatedCart = await cart.save();
-      return res.status(201).json({ status: "success", result: updatedCart });
+      let price;
+      let type;
+
+      // ================= PRODUCT =================
+      if (productId) {
+        const product = await Product.findById(productId);
+        if (!product) {
+          return res
+            .status(404)
+            .json({ status: "error", message: "Product not found" });
+        }
+
+        type = "product";
+        price = product.price;
+
+        // Check if already in cart
+        const existing = cart.items.find(
+          (i) => i.type === "product" && i.productId.toString() === productId
+        );
+
+        if (existing) {
+          existing.quantity += quantity;
+        } else {
+          cart.items.push({
+            type,
+            productId,
+            comboId: null,
+            quantity,
+          });
+        }
+      }
+
+      // ================= COMBO =================
+      if (comboId) {
+        const combo = await Combo.findById(comboId);
+        if (!combo) {
+          return res
+            .status(404)
+            .json({ status: "error", message: "Combo not found" });
+        }
+
+        type = "combo";
+        price = combo.price - combo.discount;
+
+        // Check if already in cart
+        const existing = cart.items.find(
+          (i) => i.type === "combo" && i.comboId.toString() === comboId
+        );
+
+        if (existing) {
+          existing.quantity += quantity;
+        } else {
+          cart.items.push({
+            type,
+            productId: null,
+            comboId,
+            quantity,
+          });
+        }
+      }
+
+      // ================= RECALCULATE TOTAL =================
+      cart.total = 0;
+
+      for (let item of cart.items) {
+        if (item.type === "product") {
+          const prod = await Product.findById(item.productId);
+          cart.total += prod.price * item.quantity;
+        } else if (item.type === "combo") {
+          const cmb = await Combo.findById(item.comboId);
+          cart.total += (cmb.price - cmb.discount) * item.quantity;
+        }
+      }
+
+      const saved = await cart.save();
+
+      return res.status(201).json({ status: "success", result: saved });
     } catch (error) {
       return res.status(500).json({ status: "error", message: error.message });
     }
