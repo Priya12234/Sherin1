@@ -7,7 +7,7 @@ export default function HeroSection() {
   return (
     <>
       {/* Top Border Divider */}
-      <div className="border-t border-black mt-16" />
+      <div className="mt-16 border-t border-black" />
 
       {/* Hero Section */}
       <div className="relative flex min-h-screen">
@@ -38,22 +38,26 @@ export default function HeroSection() {
           >
             Sherin
           </h1>
-          <a
-            href="#shop"
-            className="group relative mt-12 h-[55px] w-[260px] overflow-hidden border border-[#355E3B] text-center font-sans uppercase tracking-widest text-sm"
+          <div
+            className="group relative mt-12 h-[55px] w-[260px] overflow-hidden border border-[#355E3B] text-center font-sans uppercase tracking-widest text-sm cursor-pointer"
+            onClick={() => {
+              const el = document.querySelector("#shop");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
           >
             {/* -- Top Layer (Visible by default) -- */}
             <div className="absolute inset-0 flex items-center justify-center bg-[#DCE1DC] text-[#355E3B] transition-transform duration-500 ease-in-out group-hover:-translate-y-full">
               <span>Shop The Look</span>
             </div>
+
             {/* -- Bottom Layer (Revealed on hover) -- */}
             <Link
               to="/shop"
               className="absolute inset-0 flex items-center justify-center translate-y-full bg-[#355E3B] text-[#DCE1DC] transition-transform duration-500 ease-in-out group-hover:translate-y-0"
             >
-              <span>Let's go &rarr;</span>
+              <span>Let's go →</span>
             </Link>
-          </a>
+          </div>
         </div>
       </div>
       <div className=" bg-[#DCE1DC] border-t border-black mt-8" />

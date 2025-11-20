@@ -70,8 +70,12 @@ export default function SherinTreasuresPage() {
 
           {/* Right - Mobile */}
           <div className="flex items-center text-xl gap-x-5 sm:hidden">
-            <FiUser className="text-gray-800" />
-            <FiShoppingCart className="text-gray-800" />
+            <Link to="/myprofile">
+              <FiUser className="text-gray-800" />
+            </Link>
+            <Link to="/cart">
+              <FiShoppingCart className="text-gray-800" />
+            </Link>
             <button onClick={() => setMenuOpen(!menuOpen)} className="text-2xl">
               {menuOpen ? <FiX /> : <FiMenu />}
             </button>
@@ -88,8 +92,12 @@ export default function SherinTreasuresPage() {
             <Link to="/shop" className="text-gray-600">
               Pairs
             </Link>
-            <FiUser className="text-gray-800" />
-            <FiShoppingCart className="text-gray-800" />
+            <Link to="/myprofile">
+              <FiUser className="text-gray-800" />
+            </Link>
+            <Link to="/cart">
+              <FiShoppingCart className="text-gray-800" />
+            </Link>
           </div>
         </div>
 

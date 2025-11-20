@@ -1,12 +1,63 @@
 import { IoMdClose } from "react-icons/io";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 export default function LoginPopup({
   onClose,
-  onLoginSuccess, // ✅ accept success callback
+  onLoginSuccess,
   switchToRegister,
   switchToForgot,
 }) {
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleLogin = async () => {
+    setLoading(true);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/users/login",
+        form
+      );
+
+      toast.success("Login successful!");
+
+      // Save token to localStorage (if returned)
+      if (res.data?.token) {
+        localStorage.setItem("token", res.data.token);
+      }
+
+      // Save user data
+      if (res.data?.user) {
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+      }
+
+      setLoading(false);
+
+      // Call parent success handler
+      onLoginSuccess?.();
+
+      // Close popup after 1 second
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (err) {
+      setLoading(false);
+
+      toast.error(err.response?.data?.message || "Invalid email or password.");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -29,9 +80,8 @@ export default function LoginPopup({
           <IoMdClose />
         </button>
 
-        {/* Header */}
         <h2 className="text-4xl text-[#4B6A5A] font-['Italiana'] text-center mb-4">
-          Hello , Welcome Back
+          Hello, Welcome Back
         </h2>
 
         <p className="text-center text-lg font-semibold text-[#1A1A1A] mb-1">
@@ -41,29 +91,38 @@ export default function LoginPopup({
           to continue exploring effortless fashion.
         </p>
 
-        {/* Inputs (not required for now since no backend) */}
+        {/* Email */}
         <input
           type="email"
+          name="email"
           placeholder="Email"
+          onChange={handleChange}
+          value={form.email}
           className="w-full mb-5 p-3 bg-[#A5BFA4] text-black placeholder-black rounded-md"
         />
+
+        {/* Password */}
         <input
           type="password"
+          name="password"
           placeholder="Password"
+          onChange={handleChange}
+          value={form.password}
           className="w-full mb-6 p-3 bg-[#A5BFA4] text-black placeholder-black rounded-md"
         />
 
         {/* Login Button */}
         <button
-          onClick={() => onLoginSuccess?.()} // ✅ Fake login success
+          onClick={handleLogin}
+          disabled={loading}
           className="w-full border-2 border-[#4B6A5A] py-2 text-[#4B6A5A] font-semibold hover:bg-[#4B6A5A] hover:text-white transition rounded-md"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Forgot Password link */}
+        {/* Forgot Password */}
         <p
-          className="text-center text-sm mt-3 text-gray-600 cursor-pointer hover:underline"
+          className="mt-3 text-sm text-center text-gray-600 cursor-pointer hover:underline"
           onClick={switchToForgot}
         >
           Forgot Password?
@@ -71,7 +130,7 @@ export default function LoginPopup({
 
         {/* Register Link */}
         <p className="text-center text-sm mt-5 text-[#1A1A1A]">
-          Don’t have Account?{" "}
+          Don’t have an account?{" "}
           <span
             className="text-[#4B6A5A] cursor-pointer hover:underline"
             onClick={switchToRegister}
