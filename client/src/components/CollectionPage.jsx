@@ -1,49 +1,45 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { FiUser, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
 import petelJeanse from "../assets/Petal-jeans.png";
 import petalCorset from "../assets/Petal-corset.png";
 import bloomCrop from "../assets/bloom-crop.png";
 import bowBelleDress from "../assets/bowbelle-dress.png";
-import { FiUser, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
-
-const products = [
-  {
-    id: 1,
-    name: "Petal Jeans",
-    price: "₹1,499.00",
-    image: petelJeanse,
-    colors: ["bg-blue-400", "bg-indigo-400"],
-  },
-  {
-    id: 2,
-    name: "Petal Corset",
-    price: "₹1,499.00",
-    image: petalCorset,
-    colors: ["bg-pink-300", "bg-green-900"],
-  },
-  {
-    id: 3,
-    name: "Bloom Crop",
-    price: "₹1,499.00",
-    image: bloomCrop,
-    colors: ["bg-green-900"],
-  },
-  {
-    id: 4,
-    name: "BowBelle Dress",
-    price: "₹1,499.00",
-    image: bowBelleDress,
-    colors: ["bg-pink-300", "bg-green-600"],
-  },
-];
 
 export default function CollectionPage() {
   const navigate = useNavigate();
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const [items, setItems] = useState([]); // fetched clothing items
+  const imageMap = {
+    "Petal-jeans.png": petelJeanse,
+    "Petal-corset.png": petalCorset,
+    "bloom-crop.png": bloomCrop,
+    "bowbelle-dress.png": bowBelleDress,
+  };
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/products/");
+        const result = await response.json();
+
+        // Correct structure: result.data is the array
+        const clothingItems = result?.data?.filter(
+          (item) => item.category === "Clothing"
+        );
+
+        setItems(clothingItems || []);
+      } catch (error) {
+        console.log("Error fetching products:", error);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   return (
@@ -68,7 +64,7 @@ export default function CollectionPage() {
             <h1 className="text-xl font-bold font-italiana">Sherin</h1>
           </div>
 
-          {/* Right Section */}
+          {/* Right Section Mobile */}
           <div className="flex items-center text-xl gap-x-5 sm:hidden">
             <Link to="/myprofile">
               <FiUser className="text-gray-800" />
@@ -147,43 +143,51 @@ export default function CollectionPage() {
       {/* Product Layout */}
       <main className="px-4 pb-16 md:px-8">
         <div className="space-y-12 sm:space-y-0 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:gap-x-4 sm:gap-y-24">
-          {[...Array(3)]
-            .flatMap(() => products)
-            .map((product, index) => (
-              <div key={`${product.id}-${index}`} className="w-full">
-                {/* Product Image */}
-                <div className="w-full bg-white border border-gray-500">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="object-cover w-full h-auto"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src =
-                        "https://placehold.co/400x600/FEE2E2/B91C1C?text=Image+Error";
-                    }}
-                  />
-                </div>
+          {items.map((product) => (
+            <div key={product._id} className="w-full">
+              {/* IMAGE */}
+              <div className="w-full bg-white border border-gray-500">
+                <img
+                  src={imageMap[product.images?.[0]]}
+                  alt={product.name}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src =
+                      "https://placehold.co/400x600/FEE2E2/B91C1C?text=No+Image";
+                  }}
+                  className="object-cover w-full h-auto"
+                />
+              </div>
 
-                {/* Product Details */}
-                <div className="pt-2 text-left">
-                  <h3 className="text-gray-800 text-md font-playfair">
-                    {product.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-700 font-playfair">
-                    {product.price}
-                  </p>
-                  <div className="flex mt-2 space-x-1.5">
-                    {product.colors.map((color, idx) => (
-                      <span
-                        key={idx}
-                        className={`w-3 h-3 block ${color} border border-gray-500`}
-                      ></span>
-                    ))}
-                  </div>
+              {/* DETAILS */}
+              <div className="pt-2 text-left">
+                <h3 className="text-gray-800 text-md font-playfair">
+                  {product.name}
+                </h3>
+
+                {/* price + discount */}
+                <p className="mt-1 text-sm text-gray-700 font-playfair">
+                  ₹{product.price}
+                  {product.discount > 0 && (
+                    <span className="ml-2 text-green-700">
+                      ({product.discount}% off)
+                    </span>
+                  )}
+                </p>
+
+                {/* Colors */}
+                <div className="flex mt-2 space-x-1.5">
+                  {product.colors?.map((clr, idx) => (
+                    <span
+                      key={idx}
+                      className="w-3 h-3 block border border-gray-500"
+                      style={{ backgroundColor: clr.toLowerCase() }}
+                    ></span>
+                  ))}
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       </main>
     </motion.div>

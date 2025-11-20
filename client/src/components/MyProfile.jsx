@@ -1,20 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiMenu, HiX } from "react-icons/hi";
 import { Mail, User, MapPin, Phone } from "lucide-react";
 import { motion } from "framer-motion";
-import sweater from "../assets/mint-zip.png";
 import EditProfilePopup from "./EditProfilePopup";
+import axios from "axios";
 
 export default function MyProfile() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [userData, setUserData] = useState({
-    name: "Abc Xyz",
-    email: "abc@example.com",
-    phone: "+91 1234567890",
-    address: "Abc Xyz Building, near Pqr, India",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
   });
+  const handleSaveProfile = async (data) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    await axios.put(`http://localhost:5000/api/users/profile`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    fetchProfile(); // refresh UI
+  };
+
 
   const navigate = useNavigate();
 
@@ -25,6 +40,49 @@ export default function MyProfile() {
     { name: "Pairs", href: "/shop" },
     { name: "Contact Us", href: "/contact" },
   ];
+
+  // 🔥 Fetch User Profile
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch("http://localhost:5000/api/users/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // If backend sends HTML due to invalid token → redirect
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.log("Not JSON → maybe token invalid. Redirecting…");
+        navigate("/login");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Profile API:", data);
+
+      // Backend returns plain object → use directly
+      setUserData({
+        name: data.name || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || "",
+      });
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   return (
     <motion.div
@@ -68,6 +126,7 @@ export default function MyProfile() {
             {menuOpen ? <HiX /> : <HiMenu />}
           </button>
         </div>
+
         {menuOpen && (
           <div className="flex flex-col items-center mt-4 gap-3 text-md md:hidden">
             {links.map((link) => (
@@ -83,82 +142,57 @@ export default function MyProfile() {
         )}
       </header>
 
-      {/* Profile Section */}
-      <div className="max-w-6xl mx-auto py-10 px-4 sm:px-10 grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* Left: User Info */}
-        <div className="space-y-4">
-          <p className="flex items-center gap-3">
-            <Mail className="w-5 h-5 text-gray-600" />
-            <span>{userData.email}</span>
-          </p>
-          <p className="flex items-center gap-3">
-            <User className="w-5 h-5 text-gray-600" />
-            <span>{userData.name}</span>
-          </p>
-          <p className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-gray-600" />
-            <span>{userData.address}</span>
-          </p>
-          <p className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-gray-600" />
-            <span>{userData.phone}</span>
-          </p>
-          <button
-            onClick={() => setIsPopupOpen(true)}
-            className="bg-[#4B6A5A] text-white px-6 py-2 rounded hover:opacity-90"
-          >
-            Update
-          </button>
-        </div>
+      {/* Loading */}
+      {loading ? (
+        <p className="text-center text-lg py-10">Loading Profile...</p>
+      ) : (
+        <div className="max-w-6xl mx-auto py-10 px-4 sm:px-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+          {/* Left: User Info */}
+          <div className="space-y-4">
+            <p className="flex items-center gap-3">
+              <Mail className="w-5 h-5 text-gray-600" />
+              <span>{userData.email}</span>
+            </p>
 
-        {/* Right: Orders */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Your Orders</h2>
-          <p className="mb-2">
-            <span className="font-semibold">Status:</span> Payment Pending
-          </p>
+            <p className="flex items-center gap-3">
+              <User className="w-5 h-5 text-gray-600" />
+              <span>{userData.name}</span>
+            </p>
 
-          <div className="flex gap-4 border-b pb-4 mb-4">
-            <img
-              src={sweater}
-              alt="Mint Zip-Up"
-              className="w-24 h-28 object-cover"
-            />
-            <div>
-              <h3 className="font-semibold text-lg">Mint Zip-Up</h3>
-              <p className="text-sm mt-1">
-                Comfortable, trendy and fits your body and gives you classy look
-              </p>
-              <p className="text-sm mt-1">Size: M</p>
-              <button className="text-sm text-[#4B6A5A] underline mt-2">
-                Remove
-              </button>
-            </div>
+            <p className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-gray-600" />
+              <span>{userData.address || "No address added"}</span>
+            </p>
+
+            <p className="flex items-center gap-3">
+              <Phone className="w-5 h-5 text-gray-600" />
+              <span>{userData.phone || "No phone added"}</span>
+            </p>
+
+            <button
+              onClick={() => setIsPopupOpen(true)}
+              className="bg-[#4B6A5A] text-white px-6 py-2 rounded hover:opacity-90"
+            >
+              Update
+            </button>
           </div>
 
-          {/* Summary */}
-          <div className="bg-[#9AA79E] text-black px-6 py-4">
-            <div className="flex justify-between py-1">
-              <span>Subtotal :</span>
-              <span>₹500</span>
-            </div>
-            <div className="flex justify-between py-1 border-b pb-1">
-              <span>Tax Info. :</span>
-              <span>-</span>
-            </div>
-            <div className="flex justify-between font-semibold text-lg pt-2">
-              <span>Total:</span>
-              <span>₹500</span>
-            </div>
+          {/* Right: Orders (Static for now) */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Your Orders</h2>
+            <p className="mb-2">
+              <span className="font-semibold">Status:</span> No orders
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Popup Component */}
       <EditProfilePopup
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
-        onSave={(updatedData) => setUserData(updatedData)}
+        onSave={handleSaveProfile}
+        userData={userData} // ✔ correct
       />
     </motion.div>
   );

@@ -15,7 +15,7 @@ const app = express();
 
 app.use(express.json()); // body parser
 app.use(cors());
-app.use(morgan());
+// app.use(morgan());
 
 app.get("/", (req, res) => {
   res.send("Sherin API is running...");

@@ -1,40 +1,63 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FiX } from "react-icons/fi";
 
-export default function EditProfilePopup({ isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    name: "Priya Chauhan",
-    email: "priyachauhan@example.com",
-    phone: "9876543210",
-    address:
-      "201, Lotus Residency,\nNear RK University,\nRajkot, Gujarat – 360005",
-  });
+export default function EditProfilePopup({
+  isOpen,
+  onClose,
+  onSave,
+  userData,
+}) {
+  const [formData, setFormData] = useState(userData);
+
+  // Load user data when popup opens
+  useEffect(() => {
+    if (userData) {
+      setFormData(userData);
+    }
+  }, [userData]);
 
   if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (["label", "street", "city", "state", "pincode"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        address: { ...prev.address, [name]: value },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = () => {
-    onSave?.(formData);
+    const finalBody = {
+      name: formData.name,
+      phone: formData.phone,
+      address: {
+        label: formData.address.label,
+        street: formData.address.street,
+        city: formData.address.city,
+        state: formData.address.state,
+        pincode: Number(formData.address.pincode),
+      },
+    };
+
+    onSave?.(finalBody);
     onClose();
   };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-lg shadow-xl w-[90%] max-w-xl p-6 font-['Plus_Jakarta_Sans'] relative"
+        className="bg-white rounded-lg shadow-xl w-[90%] max-w-xl p-6 relative"
       >
         {/* Close button */}
         <button
@@ -44,11 +67,12 @@ export default function EditProfilePopup({ isOpen, onClose, onSave }) {
           <FiX />
         </button>
 
-        <h2 className="text-2xl font-semibold font-['Italiana'] text-[#2e4635] mb-6 text-center">
+        <h2 className="text-2xl font-semibold text-[#2e4635] mb-6 text-center">
           Edit Profile
         </h2>
 
         <div className="space-y-4">
+          {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-1">Name</label>
             <input
@@ -59,16 +83,20 @@ export default function EditProfilePopup({ isOpen, onClose, onSave }) {
               className="w-full border rounded px-3 py-2 text-sm"
             />
           </div>
+
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
               type="email"
               name="email"
+              disabled
               value={formData.email}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full border rounded px-3 py-2 text-sm bg-gray-100 cursor-not-allowed"
             />
           </div>
+
+          {/* Phone */}
           <div>
             <label className="block text-sm font-medium mb-1">Phone</label>
             <input
@@ -79,18 +107,59 @@ export default function EditProfilePopup({ isOpen, onClose, onSave }) {
               className="w-full border rounded px-3 py-2 text-sm"
             />
           </div>
+
+          {/* Address Fields */}
           <div>
             <label className="block text-sm font-medium mb-1">Address</label>
-            <textarea
-              name="address"
-              rows={3}
-              value={formData.address}
+
+            <input
+              type="text"
+              name="label"
+              placeholder="Label (e.g., Home)"
+              value={formData.address.label}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mb-2 text-sm"
+            />
+
+            <input
+              type="text"
+              name="street"
+              placeholder="Street"
+              value={formData.address.street}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mb-2 text-sm"
+            />
+
+            <input
+              type="text"
+              name="city"
+              placeholder="City"
+              value={formData.address.city}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mb-2 text-sm"
+            />
+
+            <input
+              type="text"
+              name="state"
+              placeholder="State"
+              value={formData.address.state}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 mb-2 text-sm"
+            />
+
+            <input
+              type="number"
+              name="pincode"
+              placeholder="Pincode"
+              value={formData.address.pincode}
               onChange={handleChange}
               className="w-full border rounded px-3 py-2 text-sm"
             />
           </div>
         </div>
 
+        {/* Buttons */}
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
@@ -98,6 +167,7 @@ export default function EditProfilePopup({ isOpen, onClose, onSave }) {
           >
             Cancel
           </button>
+
           <button
             onClick={handleSave}
             className="px-4 py-2 bg-[#4B6A5A] text-white hover:bg-[#3a574b] rounded"

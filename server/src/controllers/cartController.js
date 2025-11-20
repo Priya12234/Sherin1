@@ -13,10 +13,12 @@ const cartController = {
    */
   getUserCart: async (req, res) => {
     try {
-      const cart = await Cart.findOne({ userId: req.user._id }).populate(
-        "items.productId",
-        "name price images"
-      );
+      const cart = await Cart.findOne({ userId: req.user._id })
+        .populate({
+          path: "items.comboId",
+          model: "Combo",
+        })
+        .populate("items.productId", "name price images");
       if (!cart) {
         return res
           .status(404)
@@ -185,7 +187,8 @@ const cartController = {
    */
   removeFromCart: async (req, res) => {
     try {
-      const { productId } = req.params;
+      const { id } = req.params; // cart item _id
+
       const cart = await Cart.findOne({ userId: req.user._id });
       if (!cart) {
         return res
@@ -193,21 +196,37 @@ const cartController = {
           .json({ status: "error", message: "Cart not found" });
       }
 
-      cart.items = cart.items.filter(
-        (item) => item.productId.toString() !== productId
-      );
+      // Remove the cart item by its unique _id
+      cart.items = cart.items.filter((item) => item._id.toString() !== id);
 
-      // recalc total
-      cart.total = await cart.items.reduce(async (accP, item) => {
-        const acc = await accP;
-        const prod = await Product.findById(item.productId);
-        return acc + prod.price * item.quantity;
-      }, Promise.resolve(0));
+      // Recalculate total
+      let total = 0;
+
+      for (const item of cart.items) {
+        if (item.productId) {
+          const prod = await Product.findById(item.productId);
+          if (prod) total += prod.price * item.quantity;
+        }
+
+        if (item.comboId) {
+          const combo = await Combo.findById(item.comboId);
+          if (combo) total += combo.price * item.quantity;
+        }
+      }
+
+      cart.total = total;
 
       const updatedCart = await cart.save();
-      return res.status(200).json({ status: "success", result: updatedCart });
+
+      return res.status(200).json({
+        status: "success",
+        result: updatedCart,
+      });
     } catch (error) {
-      return res.status(500).json({ status: "error", message: error.message });
+      return res.status(500).json({
+        status: "error",
+        message: error.message,
+      });
     }
   },
 
